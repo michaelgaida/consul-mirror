@@ -39,4 +39,8 @@ func main() {
 	if services == nil {
 
 	}
+	nodes := consul.GetNodes()
+	if nodes == nil {
+
+	}
 }

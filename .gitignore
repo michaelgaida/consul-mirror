@@ -12,3 +12,10 @@
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+
+# Ignore configuration and template
+config.json
+config.tpl
+config_gen.json
+post_ct.sh
+consul_template.sh

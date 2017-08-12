@@ -50,12 +50,41 @@ type KV struct {
 	Regex string
 }
 
-type Service struct {
-	id      string
-	name    string
-	address string
-	port    int
-	tags    []string
+type Node struct {
+	ID              string
+	Node            string
+	Address         string
+	Datacenter      string
+	TaggedAddresses map[string]string
+	Meta            map[string]string
+	CreateIndex     uint64
+	ModifyIndex     uint64
+}
+
+type CatalogService struct {
+	ID                       string
+	Node                     string
+	Address                  string
+	Datacenter               string
+	TaggedAddresses          map[string]string
+	NodeMeta                 map[string]string
+	ServiceID                string
+	ServiceName              string
+	ServiceAddress           string
+	ServiceTags              []string
+	ServicePort              int
+	ServiceEnableTagOverride bool
+	CreateIndex              uint64
+	ModifyIndex              uint64
+}
+
+type ACL struct {
+	CreateIndex uint64
+	ID          string
+	ModifyIndex uint64
+	Name        string
+	Rules       string
+	Type        string
 }
 
 // GetConsul gets a
@@ -85,12 +114,34 @@ func (c *Consul) GetKVs(key string) []KV {
 	return result
 }
 
-// GetKVs gets a list of KeyValues from Consul
-func (c *Consul) GetServices() []Service {
+// GetServices gets a list of KeyValues from Consul
+func (c *Consul) GetServices() []CatalogService {
 	result := c.makeServiceRequest()
 	if c.debug {
 		for i := range result {
 			fmt.Println(result[i].printService())
+		}
+	}
+	return result
+}
+
+// GetACLs gets a list of ACLs from Consul
+func (c *Consul) GetACLs() []ACL {
+	result := c.makeACLRequest()
+	if c.debug {
+		for i := range result {
+			fmt.Println(result[i].printACL())
+		}
+	}
+	return result
+}
+
+// GetNodes gets a list of Nodes from Consul
+func (c *Consul) GetNodes() []Node {
+	result := c.makeNodeRequest()
+	if c.debug {
+		for i := range result {
+			fmt.Println(result[i].printNode())
 		}
 	}
 	return result
@@ -142,35 +193,116 @@ func (kv *KV) printKV() string {
 		kv.Session)
 }
 
-func (c *Consul) makeServiceRequest() []Service {
-	var result []Service
+func (c *Consul) makeServiceRequest() []CatalogService {
+	var result []CatalogService
 	cat := c.client.Catalog()
-	services, _, err := cat.Service("consul", "", nil)
+
+	services, _, err := cat.Services(nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	for i := range services {
-		fmt.Println(services[i].ServiceName)
-		fmt.Println(services[i].ServicePort)
-		fmt.Println(services[i].ServiceID)
+		for n := range services[i] {
+			fmt.Println(services[i][n])
+			// service, _, err := cat.Service(services[i], "", nil)
+		}
 
-		var service Service
-		service.id = services[i].ServiceID
-		service.name = services[i].ServiceName
-		service.address = services[i].ServiceAddress
-		service.port = services[i].ServicePort
-		service.tags = services[i].ServiceTags
+		// fmt.Println(services[i].ServicePort)
+		// fmt.Println(services[i].ServiceID)
 
-		result = append(result, service)
+		// var service CatalogService
+		// service.ServiceID = services[i].ServiceID
+		// service.ServiceName = services[i].ServiceName
+		// service.ServiceAddress = services[i].ServiceAddress
+		// service.ServicePort = services[i].ServicePort
+		// service.ServiceTags = services[i].ServiceTags
+		// service.ServiceEnableTagOverride = services[i].ServiceEnableTagOverride
+		// service.Address = services[i].Address
+		// service.CreateIndex = services[i].CreateIndex
+		// service.Datacenter = services[i].Datacenter
+		// service.ID = services[i].ID
+		// service.ModifyIndex = services[i].ModifyIndex
+		// service.Node = services[i].Node
+		// service.NodeMeta = services[i].NodeMeta
+		// service.TaggedAddresses = services[i].TaggedAddresses
+
+		// result = append(result, service)
 	}
 	return result
 }
 
-func (service *Service) printService() string {
+func (service *CatalogService) printService() string {
 	return fmt.Sprintf("Id: %s; Address: %s; Name: %s; Port: %d; Tags: %v",
-		service.id,
-		service.address,
-		service.name,
-		service.port,
-		service.tags)
+		service.ServiceID,
+		service.ServiceAddress,
+		service.ServiceName,
+		service.ServicePort,
+		service.ServicePort)
+}
+
+func (c *Consul) makeACLRequest() []ACL {
+	var result []ACL
+	acl := c.client.ACL()
+	acls, _, err := acl.List(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i := range acls {
+		var acl ACL
+
+		acl.CreateIndex = acls[i].CreateIndex
+		acl.ID = acls[i].ID
+		acl.ModifyIndex = acls[i].ModifyIndex
+		acl.Name = acls[i].Name
+		acl.Rules = acls[i].Rules
+		acl.Type = acls[i].Type
+
+		result = append(result, acl)
+	}
+	return result
+}
+
+func (acl *ACL) printACL() string {
+	return fmt.Sprintf("Id: %s; Name: %s; Rules: %s; Type: %s; CreateIndex: %d; ModifyIndex: %d",
+		acl.ID,
+		acl.Name,
+		acl.Rules,
+		acl.Type,
+		acl.CreateIndex,
+		acl.ModifyIndex)
+}
+
+func (c *Consul) makeNodeRequest() []Node {
+	var result []Node
+	cat := c.client.Catalog()
+	nodes, _, err := cat.Nodes(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i := range nodes {
+		var node Node
+		node.ID = nodes[i].ID
+		node.Address = nodes[i].Address
+		node.CreateIndex = nodes[i].CreateIndex
+		node.Datacenter = nodes[i].Datacenter
+		node.Meta = nodes[i].Meta
+		node.ModifyIndex = nodes[i].ModifyIndex
+		node.Node = nodes[i].Node
+		node.TaggedAddresses = nodes[i].TaggedAddresses
+
+		result = append(result, node)
+	}
+	return result
+}
+
+func (node *Node) printNode() string {
+	return fmt.Sprintf("Id: %s; Address: %s; Datacenter: %s; CreateIndex: %d; Meta: %v; ModifyIndex: %d; Node: %s; TaggedAddresses: %v",
+		node.ID,
+		node.Address,
+		node.Datacenter,
+		node.CreateIndex,
+		node.Meta,
+		node.ModifyIndex,
+		node.Node,
+		node.TaggedAddresses)
 }

@@ -4,6 +4,7 @@ GOTOOLS = \
 	github.com/hashicorp/consul \
 	github.com/denisenkom/go-mssqldb \
 	github.com/axw/gocov/gocov \
+	github.com/stretchr/testify/assert \
 	gopkg.in/matm/v1/gocov-html
 
 GOTAGS ?= consul-mirror

@@ -1,7 +1,7 @@
 SHELL = bash
 GOTOOLS = \
-	github.com/elazarl/go-bindata-assetfs/... \
 	golang.org/x/tools/cmd/cover \
+	github.com/hashicorp/consul \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html
 
@@ -22,7 +22,7 @@ export GOLDFLAGS
 # all builds binaries for all targets
 all: test bin
 
-bin:
+bin: tools
 	go build .
 
 # debug creates a gdb_sandbox to debug the code

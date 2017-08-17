@@ -19,3 +19,9 @@ config.tpl
 config_gen.json
 post_ct.sh
 consul_template.sh
+
+bin/
+plg/
+test.log
+exit-code
+

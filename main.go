@@ -7,6 +7,7 @@ import (
 
 	"github.com/michaelgaida/consul-mirror/configuration"
 	"github.com/michaelgaida/consul-mirror/consul"
+	"github.com/michaelgaida/consul-mirror/storage"
 )
 
 func main() {
@@ -28,13 +29,14 @@ func main() {
 	}
 
 	// s := storage.Mssql{}
-	// conn := s.OpenConnection(config)
-	// defer conn.Close()
+	conn := storage.OpenConnection(config)
+	defer conn.Close()
 
 	consul := consul.GetConsul(config)
 	kvs := consul.GetKVs("")
 	if kvs == nil {
 	}
+	conn.WriteKVs(kvs)
 	services := consul.GetServices()
 	if services == nil {
 

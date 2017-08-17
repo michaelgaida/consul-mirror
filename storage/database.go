@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	_ "github.com/denisenkom/go-mssqldb"
+
 	"github.com/michaelgaida/consul-mirror/configuration"
 )
 
@@ -33,4 +35,8 @@ func OpenConnection(config *configuration.Struct) *Mssql {
 	result.conn = conn
 	result.debug = config.Debug
 	return &result
+}
+
+func (m *Mssql) Close() {
+	m.Close()
 }

@@ -39,11 +39,33 @@ func GetConfig(f string) *Struct {
 
 // ValidateConfiguration validates a given configuration
 func (c *Struct) ValidateConfiguration() int {
+	if c.Database.User == "" {
+		log.Print("Database user is empty")
+		return 1
+	}
+	if c.Database.Password == "" {
+		log.Print("Database password is empty")
+		return 1
+	}
+	if c.Database.Host == "" {
+		log.Print("Database host is empty")
+		return 1
+	}
 	if c.Database.Database == "" {
-		log.Fatal("Database name is empty")
+		log.Print("Database name is empty")
+		return 1
 	}
 	if c.Database.Port == 0 {
-		return 2
+		log.Print("Database port is 0")
+		return 1
+	}
+	if c.Consul.Host == "" {
+		log.Print("Consul host is empty")
+		return 1
+	}
+	if c.Consul.Port == 0 {
+		log.Print("Consul port is 0")
+		return 1
 	}
 	return 0
 }

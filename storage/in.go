@@ -2,17 +2,19 @@ package storage
 
 import (
 	"log"
+	"time"
 
 	"github.com/michaelgaida/consul-mirror/consul"
 )
 
-func (db *Mssql) writeKVs(kvs []consul.KV) {
-	prep, err := db.conn.Prepare("inset into kv (CreateIndex, Flags, Key, LockIndex, ModifyIndex, Regex, Session, Value) values (?,?,?,?,?,?,?,?)")
+func (db *Mssql) WriteKVs(kvs []consul.KV) {
+	prep, err := db.conn.Prepare("insert into kv (timestamp, createIndex, flags, kvkey, lockindex, modifyIndex, regex, session, kvvalue, version) values (?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Fatal("Prepare stmt failed: ", err.Error())
 	}
 	for i := range kvs {
 		res, err := prep.Exec(
+			time.Now(),
 			kvs[i].CreateIndex,
 			kvs[i].Flags,
 			kvs[i].Key,
@@ -20,7 +22,9 @@ func (db *Mssql) writeKVs(kvs []consul.KV) {
 			kvs[i].ModifyIndex,
 			kvs[i].Regex,
 			kvs[i].Session,
-			kvs[i].Value)
+			kvs[i].Value,
+			0)
+		// For the version we should gather the old version if available and check if the value changes
 		if err != nil {
 			log.Fatal("Exec into DB failed: ", err.Error())
 		}

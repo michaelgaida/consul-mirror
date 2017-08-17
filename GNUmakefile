@@ -1,6 +1,7 @@
 SHELL = bash
 GOTOOLS = \
 	golang.org/x/tools/cmd/cover \
+	github.com/mattn/goveralls \
 	github.com/hashicorp/consul \
 	github.com/denisenkom/go-mssqldb \
 	github.com/axw/gocov/gocov \

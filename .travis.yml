@@ -2,7 +2,8 @@ language: go
 
 go:
   - 1.8.3
-
+before_install:
+  - go get github.com/mattn/goveralls
 install:
   - coveralls
 
@@ -12,6 +13,7 @@ branches:
 
 script:
   - make test
+  - $HOME/gopath/bin/goveralls -service=travis-ci
 
 sudo: false
 

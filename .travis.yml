@@ -3,6 +3,9 @@ language: go
 go:
   - 1.8.3
 
+install:
+  - coveralls
+
 branches:
   only:
     - master
@@ -11,3 +14,6 @@ script:
   - make test
 
 sudo: false
+
+after_success:
+  coveralls

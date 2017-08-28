@@ -6,7 +6,8 @@ GOTOOLS = \
 	github.com/denisenkom/go-mssqldb \
 	github.com/axw/gocov/gocov \
 	github.com/stretchr/testify/assert \
-	gopkg.in/matm/v1/gocov-html
+	gopkg.in/matm/v1/gocov-html \
+	github.com/urfave/cli
 
 GOTAGS ?= consul-mirror
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)

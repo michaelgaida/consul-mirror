@@ -17,76 +17,103 @@ func main() {
 	app.Version = "0.1.0"
 
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "validate",
-			Value: "",
-			Usage: "configuration file to be validated",
-		},
 		cli.BoolFlag{
 			Name:  "verbose",
 			Usage: "Switch on the verbose mode",
 		},
 	}
 
+	validateHelpText := `consul-mirror validate [options] FILE
+	
+		Performs a basic sanity test on consul-mirror configuration files. 
+		The validate command will attempt to parse the contents just as the 
+		"consul-mirror" command would, and catch any errors. This is useful 
+		to do a test of the configuration only, without actually starting 
+		consul-mirror.
+	
+		Returns 0 if the configuration is valid, or 1 if there are problems.`
 	app.Commands = []cli.Command{
 		cli.Command{
-			Name:  "import",
-			Usage: "import from consul",
+			Name:      "validate",
+			UsageText: validateHelpText,
+
+			Action: func(c *cli.Context) {
+				commandValidate(c.Args().First(), validateHelpText)
+			},
 		},
 		cli.Command{
-			Name:  "export",
+			Name:  "import, i",
+			Usage: "import from consul",
+			Action: func(c *cli.Context) {
+				commandImport(c.GlobalBool("verbose"), c.BoolT("dc"))
+			},
+		},
+		cli.Command{
+			Name:  "export, e",
 			Usage: "export from consul",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
 					Name:  "dc",
 					Usage: "keep the dcs",
 				},
+				cli.BoolFlag{
+					Name:  "incversion",
+					Usage: "creates a new version for every KV",
+				},
+				cli.StringFlag{
+					Name:  "prefix",
+					Usage: "key prefix for keys to be exported",
+				},
+			},
+			Action: func(c *cli.Context) {
+				commandExport(c.GlobalBool("verbose"), c.BoolT("dc"), c.BoolT("incversion"), c.String("prefix"))
 			},
 		},
 	}
 
-	app.Action = func(c *cli.Context) error {
-		if c.String("validate") != "" {
-			testConfiguration := configuration.GetConfig(c.String("validate"))
-			os.Exit(testConfiguration.ValidateConfiguration())
-		}
-		if (!(c.Bool("import"))) && (!(c.Bool("export"))) {
-			fmt.Println("Nothing to do")
-			os.Exit(0)
-		}
-		config := configuration.GetConfig("config.json")
-		if c.Bool("verbose") {
-			config.Debug = true
-		}
-		if config.Debug {
-			log.Printf(config.PrintDebug())
-		}
+	app.Run(os.Args)
+}
 
-		// s := storage.Mssql{}
-		conn := storage.OpenConnection(config)
-		// defer conn.Close()
+func initConsul(verbose bool) (*storage.Mssql, *consul.Consul) {
+	config := configuration.GetConfig("config.json")
+	config.Debug = verbose
 
-		consul := consul.GetConsul(config)
-
-		dcs := consul.GetDCs()
-
-		if c.Bool("export") {
-			kvs := consul.GetKVs("", dcs)
-			if kvs == nil {
-			}
-			conn.WriteKVs(kvs)
-		}
-
-		if c.Bool("import") {
-			kvs, _ := conn.GetKVs()
-			err := consul.WriteKVs(kvs, c.Bool("dc"))
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		return nil
+	if config.Debug {
+		log.Printf(config.PrintDebug())
 	}
 
-	app.Run(os.Args)
+	// s := storage.Mssql{}
+	conn := storage.OpenConnection(config)
+	defer conn.Close()
+
+	consul := consul.GetConsul(config)
+
+	return conn, consul
+}
+
+func commandExport(verbose, keepDC, incversion bool, prefix string) {
+	conn, consul := initConsul(verbose)
+
+	dcs := consul.GetDCs()
+	kvs := consul.GetKVs(prefix, dcs)
+	conn.WriteKVs(kvs, keepDC)
+}
+
+func commandImport(verbose, keepDC bool) {
+	conn, consul := initConsul(verbose)
+
+	kvs, _ := conn.GetKVs()
+	err := consul.WriteKVs(kvs, keepDC)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func commandValidate(file, validateHelpText string) {
+	if file != "" {
+		testConfiguration := configuration.GetConfig(file)
+		os.Exit(testConfiguration.ValidateConfiguration())
+	} else {
+		fmt.Println(validateHelpText)
+	}
 }

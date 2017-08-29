@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -14,6 +13,10 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "consul-mirror"
+	app.Author = "Michael Gaida"
+	app.Copyright = "Apache License - Version 2.0, January 2004 - http://www.apache.org/licenses/"
+	app.Email = "michael.gaida@protonmail.com"
+	app.Description = "Mirror your consul cluster for fallback in case outages or to copy it into another environment"
 	app.Version = "0.1.0"
 
 	app.Flags = []cli.Flag{
@@ -23,38 +26,40 @@ func main() {
 		},
 	}
 
-	validateHelpText := `consul-mirror validate [options] FILE
-	
-		Performs a basic sanity test on consul-mirror configuration files. 
-		The validate command will attempt to parse the contents just as the 
-		"consul-mirror" command would, and catch any errors. This is useful 
-		to do a test of the configuration only, without actually starting 
-		consul-mirror.
-	
-		Returns 0 if the configuration is valid, or 1 if there are problems.`
 	app.Commands = []cli.Command{
 		cli.Command{
-			Name:      "validate",
-			UsageText: validateHelpText,
+			Name: "validate",
+			UsageText: `consul-mirror validate [options] FILE
+			
+	Performs a basic sanity test on consul-mirror configuration files. 
+	The validate command will attempt to parse the contents just as the 
+	"consul-mirror" command would, and catch any errors. This is useful 
+	to do a test of the configuration only, without actually starting 
+	consul-mirror.
+
+	Returns 0 if the configuration is valid, or 1 if there are problems.`,
 
 			Action: func(c *cli.Context) {
-				commandValidate(c.Args().First(), validateHelpText)
+				if c.Args().Present() {
+					os.Exit(commandValidate(c.Args().First()))
+				}
+				cli.ShowCommandHelp(c, "validate")
 			},
 		},
 		cli.Command{
-			Name:  "import, i",
+			Name:  "import",
 			Usage: "import from consul",
 			Action: func(c *cli.Context) {
 				commandImport(c.GlobalBool("verbose"), c.BoolT("dc"))
 			},
 		},
 		cli.Command{
-			Name:  "export, e",
+			Name:  "export",
 			Usage: "export from consul",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
-					Name:  "dc",
-					Usage: "keep the dcs",
+					Name:  "ignoredc",
+					Usage: "ignore the original dc",
 				},
 				cli.BoolFlag{
 					Name:  "incversion",
@@ -66,7 +71,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				commandExport(c.GlobalBool("verbose"), c.BoolT("dc"), c.BoolT("incversion"), c.String("prefix"))
+				commandExport(c.GlobalBool("verbose"), c.BoolT("ignoredc"), c.BoolT("incversion"), c.String("prefix"))
 			},
 		},
 	}
@@ -84,19 +89,19 @@ func initConsul(verbose bool) (*storage.Mssql, *consul.Consul) {
 
 	// s := storage.Mssql{}
 	conn := storage.OpenConnection(config)
-	defer conn.Close()
 
 	consul := consul.GetConsul(config)
 
 	return conn, consul
 }
 
-func commandExport(verbose, keepDC, incversion bool, prefix string) {
+func commandExport(verbose, ignoreDC, incversion bool, prefix string) {
 	conn, consul := initConsul(verbose)
+	defer conn.Close()
 
 	dcs := consul.GetDCs()
 	kvs := consul.GetKVs(prefix, dcs)
-	conn.WriteKVs(kvs, keepDC)
+	conn.WriteKVs(kvs, ignoreDC, incversion)
 }
 
 func commandImport(verbose, keepDC bool) {
@@ -109,11 +114,7 @@ func commandImport(verbose, keepDC bool) {
 	}
 }
 
-func commandValidate(file, validateHelpText string) {
-	if file != "" {
-		testConfiguration := configuration.GetConfig(file)
-		os.Exit(testConfiguration.ValidateConfiguration())
-	} else {
-		fmt.Println(validateHelpText)
-	}
+func commandValidate(file string) int {
+	testConfiguration := configuration.GetConfig(file)
+	return testConfiguration.ValidateConfiguration()
 }

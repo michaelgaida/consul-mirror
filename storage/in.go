@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -9,65 +10,71 @@ import (
 
 // WriteKVs writes a KV array to a MSSQL table
 // TODO: Only write if value (in dc) changed
-func (db *Mssql) WriteKVs(kvs []consul.KV, keepDCs bool) {
-	version, err := db.conn.Prepare("select ISNULL(MAX(version), 0) from kv where kvkey = ? and datacenter = ?")
-	defer version.Close()
-	if err != nil {
-		log.Fatal("Prepare statement for get highest version failed: ", err.Error())
-	}
+func (db *Mssql) WriteKVs(kvs []consul.KV, ignoreDCs, incversion bool) {
 
 	insert, err := db.conn.Prepare("insert into kv (timestamp, createIndex, flags, kvkey, lockindex, modifyindex, regex, session, kvvalue, version, datacenter) values (?,?,?,?,?,?,?,?,?,?, ?)")
 	defer insert.Close()
 	if err != nil {
 		log.Fatal("Prepare stmt failed: ", err.Error())
 	}
+
 	for i := range kvs {
-		v := 0
-		versionres, err := version.Query(kvs[i].Key, kvs[i].Datacenter)
-		if err != nil {
-			log.Fatal("Get highest version failed: ", err.Error())
-		}
-		for versionres.Next() {
-			err := versionres.Scan(&v)
 
-			if err != nil {
-				log.Fatal("Scan highest version failed: ", err.Error())
-			}
-			v++
+		dc := ""
+		if !ignoreDCs {
+			dc = kvs[i].Datacenter
 		}
 
-		if db.debug {
-			log.Printf("Write KV %s=%s (version %d)\n", kvs[i].Key, kvs[i].Value, v)
-		}
+		v := db.getLatestVersion(kvs[i].Key, dc)
 
-		res, err := insert.Exec(
-			time.Now(),
-			kvs[i].CreateIndex,
-			kvs[i].Flags,
-			kvs[i].Key,
-			kvs[i].LockIndex,
-			kvs[i].ModifyIndex,
-			kvs[i].Regex,
-			kvs[i].Session,
-			kvs[i].Value,
-			v,
-			kvs[i].Datacenter)
+		// If the incversion is false we want only to write a entry if the key for dc changed
 		// For the version we should gather the old version if available and check if the value changes
-		if err != nil {
-			log.Fatal("Exec into DB failed: ", err.Error())
-		}
-		if db.debug {
-			lastID, err := res.LastInsertId()
-			if err != nil {
-				log.Fatal(err)
+		if (incversion == true) || (db.kvIsModified(kvs[i], v) == true) {
+			v++
+
+			if db.debug {
+				log.Printf("Write KV %s=%s (version %d)\n", kvs[i].Key, kvs[i].Value, v)
 			}
-			rowCnt, err := res.RowsAffected()
+
+			res, err := insert.Exec(
+				time.Now(),
+				kvs[i].CreateIndex,
+				kvs[i].Flags,
+				kvs[i].Key,
+				kvs[i].LockIndex,
+				kvs[i].ModifyIndex,
+				kvs[i].Regex,
+				kvs[i].Session,
+				kvs[i].Value,
+				v,
+				dc)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal("Exec into DB failed: ", err.Error())
 			}
-			log.Printf("ID = %d, affected = %d\n", lastID, rowCnt)
+			if db.debug {
+				lastID, err := res.LastInsertId()
+				if err != nil {
+					log.Fatal(err)
+				}
+				rowCnt, err := res.RowsAffected()
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Printf("ID = %d, affected = %d\n", lastID, rowCnt)
+			}
 		}
 	}
+}
+
+func (db *Mssql) kvIsModified(kv consul.KV, version int) bool {
+	dbkv, err := db.getKV(kv.Key, kv.Datacenter, version)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if kv.Key == "global/it-devops/consul-mirror/" {
+		fmt.Print("")
+	}
+	return !kv.Equals(dbkv)
 }
 
 func (db *Mssql) writeACLs(acls []consul.ACL) {

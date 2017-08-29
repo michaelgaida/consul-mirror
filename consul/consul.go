@@ -88,3 +88,9 @@ func (c *Consul) WriteKVs(kvs []KV, keepDC bool) error {
 	}
 	return c.writeKV(kvs, keepDC)
 }
+
+func (kv *KV) Equals(ckv KV) bool {
+	return (kv.Datacenter == ckv.Datacenter) &&
+		(kv.Key == ckv.Key) &&
+		(string(kv.Value[:]) == string(ckv.Value[:]))
+}

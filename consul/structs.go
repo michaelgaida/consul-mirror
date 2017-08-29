@@ -41,6 +41,8 @@ type KV struct {
 
 	// Not implemented yet in consul API
 	Regex string
+
+	Datacenter string
 }
 
 type Node struct {
@@ -78,4 +80,8 @@ type ACL struct {
 	Name        string
 	Rules       string
 	Type        string
+}
+
+type DC struct {
+	Name string
 }

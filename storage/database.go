@@ -24,9 +24,6 @@ func OpenConnection(config *configuration.Struct) *Mssql {
 	var result Mssql
 
 	connString := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d;database=%s", config.Database.Host, config.Database.User, config.Database.Password, config.Database.Port, config.Database.Database)
-	if config.Debug {
-		fmt.Printf(" connString:%s\n", connString)
-	}
 
 	conn, err := sql.Open("mssql", connString)
 	if err != nil {
@@ -37,6 +34,7 @@ func OpenConnection(config *configuration.Struct) *Mssql {
 	return &result
 }
 
+// Close the Mssql connection
 func (m *Mssql) Close() {
-	m.Close()
+	m.conn.Close()
 }

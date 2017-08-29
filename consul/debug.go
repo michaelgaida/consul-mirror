@@ -3,7 +3,7 @@ package consul
 import "fmt"
 
 func (kv *KV) printKV() string {
-	return fmt.Sprintf("Key: %s; Value: %s; RegEx: %s; CreateIndex: %d; Flags: %d; LockIndex: %d; ModifyIndex: %d, Session: %s",
+	return fmt.Sprintf("KV - Key: %s; Value: %s; RegEx: %s; CreateIndex: %d; Flags: %d; LockIndex: %d; ModifyIndex: %d, Session: %s",
 		kv.Key,
 		kv.Value,
 		kv.Regex,
@@ -43,4 +43,8 @@ func (node *Node) printNode() string {
 		node.ModifyIndex,
 		node.Node,
 		node.TaggedAddresses)
+}
+
+func (dc *DC) printDC() string {
+	return fmt.Sprintf("Datacenter - Name: %s", dc.Name)
 }

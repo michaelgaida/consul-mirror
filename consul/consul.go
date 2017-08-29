@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 
@@ -25,12 +24,23 @@ func GetConsul(config *configuration.Struct) *Consul {
 	return &c
 }
 
-// GetKVs gets a list of KeyValues from Consul
-func (c *Consul) GetKVs(key string) []KV {
-	result := c.makeKVRequest(key)
+// GetKVs gets a list of KeyValues from Consul from all given DCs
+func (c *Consul) GetKVs(key string, dcs []DC) []KV {
+	result := c.makeKVRequest(key, dcs)
 	if c.debug {
 		for i := range result {
-			fmt.Println(result[i].printKV())
+			log.Println(result[i].printKV())
+		}
+	}
+	return result
+}
+
+// GetDCs gets a list of available DCs from Consul
+func (c *Consul) GetDCs() []DC {
+	result := c.makeDCRequest()
+	if c.debug {
+		for i := range result {
+			log.Println(result[i].printDC())
 		}
 	}
 	return result
@@ -41,7 +51,7 @@ func (c *Consul) GetServices() []CatalogService {
 	result := c.makeServiceRequest()
 	if c.debug {
 		for i := range result {
-			fmt.Println(result[i].printService())
+			log.Println(result[i].printService())
 		}
 	}
 	return result
@@ -52,7 +62,7 @@ func (c *Consul) GetACLs() []ACL {
 	result := c.makeACLRequest()
 	if c.debug {
 		for i := range result {
-			fmt.Println(result[i].printACL())
+			log.Println(result[i].printACL())
 		}
 	}
 	return result
@@ -63,8 +73,18 @@ func (c *Consul) GetNodes() []Node {
 	result := c.makeNodeRequest()
 	if c.debug {
 		for i := range result {
-			fmt.Println(result[i].printNode())
+			log.Println(result[i].printNode())
 		}
 	}
 	return result
+}
+
+// WriteKVs writes KVs to consul
+func (c *Consul) WriteKVs(kvs []KV, keepDC bool) error {
+	if c.debug {
+		for i := range kvs {
+			log.Println(kvs[i].printKV())
+		}
+	}
+	return c.writeKV(kvs, keepDC)
 }

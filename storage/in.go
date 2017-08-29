@@ -9,7 +9,7 @@ import (
 
 // WriteKVs writes a KV array to a MSSQL table
 // TODO: Only write if value (in dc) changed
-func (db *Mssql) WriteKVs(kvs []consul.KV) {
+func (db *Mssql) WriteKVs(kvs []consul.KV, keepDCs bool) {
 	version, err := db.conn.Prepare("select ISNULL(MAX(version), 0) from kv where kvkey = ? and datacenter = ?")
 	defer version.Close()
 	if err != nil {

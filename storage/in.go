@@ -7,13 +7,39 @@ import (
 	"github.com/michaelgaida/consul-mirror/consul"
 )
 
+// WriteKVs writes a KV array to a MSSQL table
 func (db *Mssql) WriteKVs(kvs []consul.KV) {
-	prep, err := db.conn.Prepare("insert into kv (timestamp, createIndex, flags, kvkey, lockindex, modifyIndex, regex, session, kvvalue, version) values (?,?,?,?,?,?,?,?,?,?)")
+	version, err := db.conn.Prepare("select ISNULL(MAX(version), 0) from kv where kvkey = ? and datacenter = ?")
+	defer version.Close()
+	if err != nil {
+		log.Fatal("Prepare statement for get highest version failed: ", err.Error())
+	}
+
+	insert, err := db.conn.Prepare("insert into kv (timestamp, createIndex, flags, kvkey, lockindex, modifyindex, regex, session, kvvalue, version, datacenter) values (?,?,?,?,?,?,?,?,?,?, ?)")
+	defer insert.Close()
 	if err != nil {
 		log.Fatal("Prepare stmt failed: ", err.Error())
 	}
 	for i := range kvs {
-		res, err := prep.Exec(
+		v := 0
+		versionres, err := version.Query(kvs[i].Key, kvs[i].Datacenter)
+		if err != nil {
+			log.Fatal("Get highest version failed: ", err.Error())
+		}
+		for versionres.Next() {
+			err := versionres.Scan(&v)
+
+			if err != nil {
+				log.Fatal("Scan highest version failed: ", err.Error())
+			}
+			v++
+		}
+
+		if db.debug {
+			log.Printf("Write KV %s=%s (version %d)\n", kvs[i].Key, kvs[i].Value, v)
+		}
+
+		res, err := insert.Exec(
 			time.Now(),
 			kvs[i].CreateIndex,
 			kvs[i].Flags,
@@ -23,7 +49,8 @@ func (db *Mssql) WriteKVs(kvs []consul.KV) {
 			kvs[i].Regex,
 			kvs[i].Session,
 			kvs[i].Value,
-			0)
+			v,
+			kvs[i].Datacenter)
 		// For the version we should gather the old version if available and check if the value changes
 		if err != nil {
 			log.Fatal("Exec into DB failed: ", err.Error())

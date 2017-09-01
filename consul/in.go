@@ -7,7 +7,7 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 )
 
-func (c *Consul) writeKV(kvs []KV, keepDC bool) error {
+func (c *Consul) writeKV(kvs []KV, ignoreDC bool) error {
 
 	var kv = consulapi.KVPair{}
 
@@ -23,7 +23,7 @@ func (c *Consul) writeKV(kvs []KV, keepDC bool) error {
 		kv.Value = kvs[i].Value
 
 		writeopt := &consulapi.WriteOptions{}
-		if keepDC {
+		if !ignoreDC {
 			writeopt = &consulapi.WriteOptions{Datacenter: kvs[i].Datacenter}
 		}
 

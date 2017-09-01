@@ -80,15 +80,16 @@ func (c *Consul) GetNodes() []Node {
 }
 
 // WriteKVs writes KVs to consul
-func (c *Consul) WriteKVs(kvs []KV, keepDC bool) error {
+func (c *Consul) WriteKVs(kvs []KV, ignoreDC bool) error {
 	if c.debug {
 		for i := range kvs {
 			log.Println(kvs[i].printKV())
 		}
 	}
-	return c.writeKV(kvs, keepDC)
+	return c.writeKV(kvs, ignoreDC)
 }
 
+// Checks if to kv are equal in tearms of content
 func (kv *KV) Equals(ckv KV) bool {
 	return (kv.Datacenter == ckv.Datacenter) &&
 		(kv.Key == ckv.Key) &&

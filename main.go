@@ -24,6 +24,14 @@ func main() {
 			Name:  "verbose",
 			Usage: "Switch on the verbose mode",
 		},
+		cli.StringFlag{
+			Name:  "token",
+			Usage: "ACL Token to be used to interact with consul",
+		},
+		cli.StringFlag{
+			Name:  "dbpassword",
+			Usage: "Database password to be used to connect",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -38,7 +46,6 @@ func main() {
 	consul-mirror.
 
 	Returns 0 if the configuration is valid, or 1 if there are problems.`,
-
 			Action: func(c *cli.Context) {
 				if c.Args().Present() {
 					os.Exit(commandValidate(c.Args().First()))
@@ -49,8 +56,20 @@ func main() {
 		cli.Command{
 			Name:  "import",
 			Usage: "import from consul",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "ignoredc",
+					Usage: "ignore the dc information in DB",
+				},
+				cli.StringFlag{
+					Name:  "prefix",
+					Usage: "key prefix for keys to be imported",
+				},
+			},
 			Action: func(c *cli.Context) {
-				commandImport(c.GlobalBool("verbose"), c.BoolT("dc"))
+				storage, consul := initConsul(c)
+				defer storage.Close()
+				commandImport(storage, consul, c.BoolT("ignoredc"), c.String("prefix"))
 			},
 		},
 		cli.Command{
@@ -71,7 +90,9 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				commandExport(c.GlobalBool("verbose"), c.BoolT("ignoredc"), c.BoolT("incversion"), c.String("prefix"))
+				storage, consul := initConsul(c)
+				defer storage.Close()
+				commandExport(storage, consul, c.BoolT("ignoredc"), c.BoolT("incversion"), c.String("prefix"))
 			},
 		},
 	}
@@ -79,9 +100,10 @@ func main() {
 	app.Run(os.Args)
 }
 
-func initConsul(verbose bool) (*storage.Mssql, *consul.Consul) {
+func initConsul(cli *cli.Context) (*storage.Mssql, *consul.Consul) {
 	config := configuration.GetConfig("config.json")
-	config.Debug = verbose
+
+	config.OverwriteConfig(cli)
 
 	if config.Debug {
 		log.Printf(config.PrintDebug())
@@ -95,22 +117,20 @@ func initConsul(verbose bool) (*storage.Mssql, *consul.Consul) {
 	return conn, consul
 }
 
-func commandExport(verbose, ignoreDC, incversion bool, prefix string) {
-	conn, consul := initConsul(verbose)
-	defer conn.Close()
-
+func commandExport(storage *storage.Mssql, consul *consul.Consul, ignoreDC, incversion bool, prefix string) {
 	dcs := consul.GetDCs()
 	kvs := consul.GetKVs(prefix, dcs)
-	conn.WriteKVs(kvs, ignoreDC, incversion)
+	storage.WriteKVs(kvs, ignoreDC, incversion)
 }
 
-func commandImport(verbose, keepDC bool) {
-	conn, consul := initConsul(verbose)
-
-	kvs, _ := conn.GetKVs()
-	err := consul.WriteKVs(kvs, keepDC)
+func commandImport(storage *storage.Mssql, consul *consul.Consul, ignoreDC bool, prefix string) {
+	kvs, err := storage.GetKVs(prefix)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error while fetching the data from the storage: ", err)
+	}
+	err = consul.WriteKVs(kvs, ignoreDC)
+	if err != nil {
+		log.Fatal("Error while writing the data to consul", err)
 	}
 }
 

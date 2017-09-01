@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/urfave/cli"
 )
 
 // Struct that represents the configuration
@@ -24,12 +26,20 @@ type Struct struct {
 	Debug bool `json:"debug"`
 }
 
+func (c *Struct) setDefaults() {
+	c.Consul.Port = 8500
+	c.Consul.Host = "localhost"
+	c.Database.Port = 1433
+	c.Debug = false
+}
+
 // GetConfig reads the configuration from a configuration file and returns
 // a configuration struct
 func GetConfig(f string) *Struct {
 	file, _ := os.Open(f)
 	decoder := json.NewDecoder(file)
 	config := Struct{}
+	config.setDefaults()
 	decerr := decoder.Decode(&config)
 	if decerr != nil {
 		fmt.Println("error parsing the configuration:", decerr)
@@ -68,6 +78,17 @@ func (c *Struct) ValidateConfiguration() int {
 		return 1
 	}
 	return 0
+}
+
+// OverwriteConfig updates the configuration with cli context
+func (c *Struct) OverwriteConfig(cli *cli.Context) {
+	c.Debug = cli.GlobalBool("verbose")
+	if cli.GlobalString("token") != "" {
+		c.Consul.ACL = cli.GlobalString("token")
+	}
+	if cli.GlobalString("dbpassword") != "" {
+		c.Database.Password = cli.GlobalString("dbpassword")
+	}
 }
 
 // PrintDebug returns a string representation of the configuration

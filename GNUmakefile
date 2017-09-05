@@ -7,7 +7,8 @@ GOTOOLS = \
 	github.com/axw/gocov/gocov \
 	github.com/stretchr/testify/assert \
 	gopkg.in/matm/v1/gocov-html \
-	github.com/urfave/cli
+	github.com/urfave/cli \
+	github.com/sirupsen/logrus
 
 GOTAGS ?= consul-mirror
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)

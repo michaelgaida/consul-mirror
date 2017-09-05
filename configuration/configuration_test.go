@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -37,14 +38,14 @@ type consul struct {
 type fields struct {
 	Database database `json:"database"`
 	Consul   consul   `json:"consul"`
-	Debug    bool     `json:"debug"`
+	LogLevel string   `json:"loglevel"`
 }
 
 func TestStruct_ValidateConfiguration(t *testing.T) {
 	type teststruct struct {
 		name string
 		fields
-		want int
+		want error
 	}
 	dbconfigs := []database{
 		{"athur", "Dont't Panic", "Earth", "Towl", 42},
@@ -63,24 +64,25 @@ func TestStruct_ValidateConfiguration(t *testing.T) {
 	}
 
 	tests := []teststruct{
-		{"All Good", fields{dbconfigs[0], consulconfigs[0], false}, 0},
-		{"Empty DB User", fields{dbconfigs[1], consulconfigs[0], false}, 1},
-		{"Empty DB Password", fields{dbconfigs[2], consulconfigs[0], false}, 1},
-		{"Empty DB Host", fields{dbconfigs[3], consulconfigs[0], false}, 1},
-		{"Empty DB Name", fields{dbconfigs[4], consulconfigs[0], false}, 1},
-		{"Empty DB Port", fields{dbconfigs[5], consulconfigs[0], false}, 1},
-		{"Empty Consul ACL", fields{dbconfigs[0], consulconfigs[1], false}, 0},
-		{"Empty Consul Host", fields{dbconfigs[0], consulconfigs[2], false}, 1},
-		{"Empty Consul Port", fields{dbconfigs[0], consulconfigs[3], false}, 1},
+		{"All Good", fields{dbconfigs[0], consulconfigs[0], "info"}, nil},
+		{"Empty DB User", fields{dbconfigs[1], consulconfigs[0], "debug"}, errors.New("Database user is empty")},
+		{"Empty DB Password", fields{dbconfigs[2], consulconfigs[0], "panic"}, errors.New("Database password is empty")},
+		{"Empty DB Host", fields{dbconfigs[3], consulconfigs[0], "info"}, errors.New("Database host is empty")},
+		{"Empty DB Name", fields{dbconfigs[4], consulconfigs[0], "info"}, errors.New("Database name is empty")},
+		{"Empty DB Port", fields{dbconfigs[5], consulconfigs[0], "info"}, errors.New("Database port is 0")},
+		{"Empty Consul ACL", fields{dbconfigs[0], consulconfigs[1], "info"}, nil},
+		{"Empty Consul Host", fields{dbconfigs[0], consulconfigs[2], "info"}, errors.New("Consul host is empty")},
+		{"Empty Consul Port", fields{dbconfigs[0], consulconfigs[3], "info"}, errors.New("Consul port is 0")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Struct{
 				Database: tt.fields.Database,
 				Consul:   tt.fields.Consul,
-				Debug:    tt.fields.Debug,
+				LogLevel: tt.fields.LogLevel,
 			}
-			if got := c.ValidateConfiguration(); got != tt.want {
+			got := c.ValidateConfiguration()
+			if (got != nil || tt.want != nil) && (got.Error() != tt.want.Error()) {
 				t.Errorf("Struct.ValidateConfiguration() = %v, want %v", got, tt.want)
 			}
 		})
@@ -103,16 +105,16 @@ func TestStruct_PrintDebug(t *testing.T) {
 	}
 
 	tests := []teststruct{
-		{"All Good", fields{dbconfigs[0], consulconfigs[0], false}, "42"},
-		{"All Good", fields{dbconfigs[0], consulconfigs[0], false}, "Vogons"},
-		{"All Good", fields{dbconfigs[0], consulconfigs[0], false}, "Harmless"},
+		{"All Good", fields{dbconfigs[0], consulconfigs[0], "debug"}, "42"},
+		{"All Good", fields{dbconfigs[0], consulconfigs[0], "debug"}, "Vogons"},
+		{"All Good", fields{dbconfigs[0], consulconfigs[0], "debug"}, "Harmless"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Struct{
 				Database: tt.fields.Database,
 				Consul:   tt.fields.Consul,
-				Debug:    tt.fields.Debug,
+				LogLevel: tt.fields.LogLevel,
 			}
 			got := c.PrintDebug()
 			assert.Contains(t, got, tt.want)

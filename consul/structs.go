@@ -5,7 +5,7 @@ import consulapi "github.com/hashicorp/consul/api"
 // Consul represents a consul connection
 type Consul struct {
 	client *consulapi.Client
-	debug  bool
+	// debug  bool
 }
 
 type KV struct {

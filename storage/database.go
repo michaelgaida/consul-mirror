@@ -3,7 +3,8 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	_ "github.com/denisenkom/go-mssqldb"
 
@@ -15,23 +16,25 @@ type storage interface {
 }
 
 type Mssql struct {
-	conn  *sql.DB
-	debug bool
+	conn *sql.DB
+	// debug bool
 }
 
 // OpenConnection opens a database connection and returns it
-func OpenConnection(config *configuration.Struct) *Mssql {
+func OpenConnection(config *configuration.Struct) (*Mssql, error) {
 	var result Mssql
 
 	connString := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d;database=%s", config.Database.Host, config.Database.User, config.Database.Password, config.Database.Port, config.Database.Database)
 
 	conn, err := sql.Open("mssql", connString)
 	if err != nil {
-		log.Fatal("Open connection failed:", err.Error())
+		log.Error("Open connection failed: ", err.Error())
+		return nil, err
+
 	}
 	result.conn = conn
-	result.debug = config.Debug
-	return &result
+	// result.debug = config.Debug
+	return &result, nil
 }
 
 // Close the Mssql connection

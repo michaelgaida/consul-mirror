@@ -2,8 +2,8 @@ package configuration
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/urfave/cli"
@@ -23,14 +23,14 @@ type Struct struct {
 		Host string `json:"host"`
 		Port int    `json:"port"`
 	} `json:"consul"`
-	Debug bool `json:"debug"`
+	LogLevel string `json:"loglevel"`
 }
 
 func (c *Struct) setDefaults() {
 	c.Consul.Port = 8500
 	c.Consul.Host = "localhost"
 	c.Database.Port = 1433
-	c.Debug = false
+	c.LogLevel = "info"
 }
 
 // GetConfig reads the configuration from a configuration file and returns
@@ -48,46 +48,41 @@ func GetConfig(f string) *Struct {
 }
 
 // ValidateConfiguration validates a given configuration
-func (c *Struct) ValidateConfiguration() int {
+func (c *Struct) ValidateConfiguration() error {
 	if c.Database.User == "" {
-		log.Print("Database user is empty")
-		return 1
+		return errors.New("Database user is empty")
 	}
 	if c.Database.Password == "" {
-		log.Print("Database password is empty")
-		return 1
+		return errors.New("Database password is empty")
 	}
 	if c.Database.Host == "" {
-		log.Print("Database host is empty")
-		return 1
+		return errors.New("Database host is empty")
 	}
 	if c.Database.Database == "" {
-		log.Print("Database name is empty")
-		return 1
+		return errors.New("Database name is empty")
 	}
 	if c.Database.Port == 0 {
-		log.Print("Database port is 0")
-		return 1
+		return errors.New("Database port is 0")
 	}
 	if c.Consul.Host == "" {
-		log.Print("Consul host is empty")
-		return 1
+		return errors.New("Consul host is empty")
 	}
 	if c.Consul.Port == 0 {
-		log.Print("Consul port is 0")
-		return 1
+		return errors.New("Consul port is 0")
 	}
-	return 0
+	return nil
 }
 
 // OverwriteConfig updates the configuration with cli context
 func (c *Struct) OverwriteConfig(cli *cli.Context) {
-	c.Debug = cli.GlobalBool("verbose")
 	if cli.GlobalString("token") != "" {
 		c.Consul.ACL = cli.GlobalString("token")
 	}
 	if cli.GlobalString("dbpassword") != "" {
 		c.Database.Password = cli.GlobalString("dbpassword")
+	}
+	if cli.GlobalString("loglevel") != "" {
+		c.LogLevel = cli.GlobalString("loglevel")
 	}
 }
 
@@ -102,7 +97,7 @@ func (c *Struct) PrintDebug() string {
 	result = fmt.Sprintf("%sconsul.acl:%s\n", result, c.Consul.ACL)
 	result = fmt.Sprintf("%sconsul.host:%s\n", result, c.Consul.Host)
 	result = fmt.Sprintf("%sconsul.port:%d\n\n", result, c.Consul.Port)
-	result = fmt.Sprintf("%sdebug:%t\n\n", result, c.Debug)
+	result = fmt.Sprintf("%sloglevel:%s\n\n", result, c.LogLevel)
 
 	return result
 }

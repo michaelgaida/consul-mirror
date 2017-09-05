@@ -57,10 +57,10 @@ func main() {
 			Action: func(c *cli.Context) {
 				if c.Args().Present() {
 					if err := commandValidate(c.Args().First()); err != nil {
-						log.Error("Validation not succesful: ", err.Error())
+						log.Error("Validation not successful: ", err.Error())
 						os.Exit(1)
 					}
-					log.Info("Validation succesful, you can go ahead and use your config")
+					log.Info("Validation successful, you can go ahead and use your config")
 					os.Exit(0)
 				}
 				cli.ShowCommandHelp(c, "validate")

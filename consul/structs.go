@@ -8,6 +8,7 @@ type Consul struct {
 	// debug  bool
 }
 
+// KV represents a Key Value Pair
 type KV struct {
 	// Key is the name of the key. It is also part of the URL path when accessed
 	// via the API.
@@ -45,6 +46,7 @@ type KV struct {
 	Datacenter string
 }
 
+// Node represents a Node
 type Node struct {
 	ID              string
 	Node            string
@@ -56,6 +58,7 @@ type Node struct {
 	ModifyIndex     uint64
 }
 
+// CatalogService represents a service
 type CatalogService struct {
 	ID                       string
 	Node                     string
@@ -73,6 +76,7 @@ type CatalogService struct {
 	ModifyIndex              uint64
 }
 
+// ACL represents a ACL
 type ACL struct {
 	CreateIndex uint64
 	ID          string
@@ -82,6 +86,7 @@ type ACL struct {
 	Type        string
 }
 
+// DC represents a Datacenter
 type DC struct {
 	Name string
 }

@@ -42,7 +42,7 @@ func main() {
 	}
 
 	app.Commands = []cli.Command{
-		cli.Command{
+		{
 			Name:  "validate",
 			Usage: "Performs a basic sanity test on consul-mirror configuration files",
 			UsageText: `consul-mirror validate [options] FILE
@@ -66,7 +66,7 @@ func main() {
 				cli.ShowCommandHelp(c, "validate")
 			},
 		},
-		cli.Command{
+		{
 			Name:  "import",
 			Usage: "import from consul",
 			Flags: []cli.Flag{
@@ -96,7 +96,7 @@ func main() {
 				commandImport(storage, consul, c.BoolT("ignoredc"), c.BoolT("dcprefix"), c.String("prefix"), c.String("setprefix"))
 			},
 		},
-		cli.Command{
+		{
 			Name:  "export",
 			Usage: "export from consul",
 			Flags: []cli.Flag{

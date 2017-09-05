@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	// This comment is for golint since it does not recognice the _
 	_ "github.com/denisenkom/go-mssqldb"
 
 	"github.com/michaelgaida/consul-mirror/configuration"
@@ -15,9 +16,9 @@ type storage interface {
 	OpenConnection(configuration configuration.Struct) *sql.DB
 }
 
+// Mssql is the struct representing the Mssql connection
 type Mssql struct {
 	conn *sql.DB
-	// debug bool
 }
 
 // OpenConnection opens a database connection and returns it
@@ -33,7 +34,6 @@ func OpenConnection(config *configuration.Struct) (*Mssql, error) {
 
 	}
 	result.conn = conn
-	// result.debug = config.Debug
 	return &result, nil
 }
 
